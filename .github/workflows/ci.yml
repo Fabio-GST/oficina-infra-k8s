@@ -54,14 +54,31 @@ jobs:
     # Só roda quando as credenciais do lab estiverem configuradas no repo.
     if: github.event.pull_request.head.repo.full_name == github.repository
     steps:
+      # Sem as credenciais do lab (expiram a cada sessão) o plan é pulado, não
+      # falha: fmt/validate/tflint continuam sendo o gate obrigatório.
+      - name: Verificar credenciais do lab
+        id: cred
+        env:
+          CHAVE: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        run: |
+          if [ -z "$CHAVE" ]; then
+            echo "tem=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Secrets AWS_* ausentes — plan pulado. Rode scripts/atualizar-credenciais-aws.sh."
+          else
+            echo "tem=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.cred.outputs.tem == 'true'
 
       - uses: hashicorp/setup-terraform@v3
+        if: steps.cred.outputs.tem == 'true'
         with:
           terraform_version: '1.9.8'
           terraform_wrapper: false
 
       - name: Credenciais AWS (Learner Lab)
+        if: steps.cred.outputs.tem == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
@@ -70,6 +87,7 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
 
       - name: terraform init
+        if: steps.cred.outputs.tem == 'true'
         run: |
           terraform init -input=false \
             -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
@@ -80,12 +98,14 @@ jobs:
 
       - name: terraform plan
         id: plan
+        if: steps.cred.outputs.tem == 'true'
         run: |
           terraform plan -input=false -no-color -out=tfplan \
             -var="habilitar_gateway=${{ vars.HABILITAR_GATEWAY || 'false' }}" \
             | tee plan.txt
 
       - name: Comentar plan no PR
+        if: steps.cred.outputs.tem == 'true'
         uses: actions/github-script@v7
         with:
           script: |
