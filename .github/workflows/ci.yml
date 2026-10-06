@@ -58,6 +58,7 @@ jobs:
       # falha: fmt/validate/tflint continuam sendo o gate obrigatório.
       - name: Verificar credenciais do lab
         id: cred
+        working-directory: .
         env:
           CHAVE: ${{ secrets.AWS_ACCESS_KEY_ID }}
         run: |
