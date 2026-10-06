@@ -14,8 +14,6 @@ data "aws_availability_zones" "disponiveis" {
   }
 }
 
-data "aws_caller_identity" "atual" {}
-
 locals {
   # Duas zonas são suficientes para o EKS e para o subnet group do RDS.
   zonas = slice(data.aws_availability_zones.disponiveis.names, 0, 2)
