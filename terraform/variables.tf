@@ -81,3 +81,16 @@ variable "nome_service_api" {
   type        = string
   default     = "oficina-api"
 }
+
+variable "habilitar_new_relic" {
+  description = "Instala o nri-bundle do New Relic (infra agent, kube-state-metrics, eventos e logs) no cluster. Exige new_relic_license_key."
+  type        = bool
+  default     = true
+}
+
+variable "new_relic_license_key" {
+  description = "Ingest license key da conta New Relic. No CD vem de TF_VAR_new_relic_license_key (secret NEW_RELIC_LICENSE_KEY)."
+  type        = string
+  default     = ""
+  sensitive   = true
+}

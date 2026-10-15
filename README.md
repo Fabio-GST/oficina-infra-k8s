@@ -41,6 +41,8 @@ flowchart LR
     LAMBDA["Lambda auth<br/>repo oficina-auth-lambda"]
   end
 
+  NR["New Relic<br/>APM · K8s · Logs"]
+
   C --> GWH & GWP
   GWH & GWP -- "ANY /{proxy+}" --> VL --> NLB --> NG
   GWH & GWP -- "POST /auth/cpf" --> LAMBDA
@@ -48,6 +50,7 @@ flowchart LR
   NG --> RDS
   LAMBDA --> RDS
   AWS -. publica ids .-> SSM
+  NG -. nri-bundle .-> NR
 ```
 
 Dentro do cluster, este repositório cria:
@@ -56,6 +59,7 @@ Dentro do cluster, este repositório cria:
 | --- | --- |
 | Namespaces `oficina-hml` e `oficina-prod` + `ResourceQuota` | Um cluster, dois ambientes isolados (economia de crédito) |
 | `metrics-server` (Helm) | Métricas de CPU/memória para o **HPA** da aplicação |
+| `nri-bundle` (Helm, opcional) | **New Relic**: infra agent + kube-state-metrics, eventos do cluster e coleta de logs (ver [Observabilidade](#observabilidade-new-relic)) |
 | `cluster-autoscaler` (Helm, opcional) | Escala o node group entre `nos_minimo` e `nos_maximo` |
 | Add-ons `coredns`, `kube-proxy`, `vpc-cni` | Base do EKS |
 
@@ -72,7 +76,7 @@ Dentro do cluster, este repositório cria:
 | Limitação do lab | O que foi feito |
 | --- | --- |
 | Não cria roles/policies IAM nem OIDC provider | Cluster, node group e Lambda usam a **`LabRole`** existente (`create_iam_role = false`). Nada de IRSA: o Cluster Autoscaler usa as permissões da role dos nós. |
-| Credenciais temporárias, expiram a cada sessão | Pipelines usam `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN` como secrets; o script [`scripts/atualizar-credenciais-aws.sh`](./scripts/atualizar-credenciais-aws.sh) os renova nos 4 repos. |
+| Credenciais temporárias, expiram a cada sessão | Pipelines usam `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN` como secrets; o script [`scripts/atualizar-credenciais-aws.sh`](./scripts/atualizar-credenciais-aws.sh) os renova nos 4 repos. O secret `NEW_RELIC_LICENSE_KEY` (opcional, environments `hml`/`prod`) é fixo. |
 | Crédito limitado (~US$ 50–100) | Sem NAT Gateway (nós em subnets públicas), 2 × `t3.small`, 1 cluster com 2 namespaces, sem KMS/log group do control plane. **Destrua ao fim da sessão.** |
 | Região | `us-east-1` fixa. |
 
@@ -143,6 +147,41 @@ terraform destroy
 ```
 
 ou pelo GitHub: **Actions → CD → Run workflow → destruir = true**.
+
+## Observabilidade (New Relic)
+
+Decisão na [RFC 0004](https://github.com/Fabio-GST/oficina-api/blob/main/docs/rfc/0004-observabilidade.md)
+do `oficina-api`. Este repositório instala o Helm chart
+[`nri-bundle`](https://github.com/newrelic/helm-charts/tree/master/charts/nri-bundle)
+([`terraform/observabilidade.tf`](./terraform/observabilidade.tf)) no namespace `newrelic`, com
+`global.cluster = oficina` e `lowDataMode`:
+
+| Componente | O que envia |
+| --- | --- |
+| `newrelic-infrastructure` + `kube-state-metrics` | CPU/memória por pod e nó, réplicas do HPA, reinícios (`K8sPodSample`, `K8sContainerSample`, `K8sNodeSample`, `K8sDeploymentSample`) |
+| `nri-kube-events` | Eventos do cluster (`CrashLoopBackOff`, `OOMKilled`, scheduling) |
+| `newrelic-logging` (Fluent Bit) | stdout dos containers → **Logs**; as linhas JSON da API já têm `trace.id`, correlacionando log ↔ trace do APM |
+| `nri-metadata-injection` | Metadados do Kubernetes nos traces do APM da API |
+
+Sem IAM/IRSA: só a license key. Variáveis Terraform: `habilitar_new_relic` (default `true`) e
+`new_relic_license_key` (sensível, vinda de `TF_VAR_new_relic_license_key`). Nos pipelines, se o
+secret `NEW_RELIC_LICENSE_KEY` não existir (ou `HABILITAR_NEW_RELIC=false` nas variáveis do
+repo), o bundle é pulado com um aviso e o resto da infra sobe normalmente.
+
+Localmente:
+
+```bash
+export TF_VAR_new_relic_license_key="<ingest license key>"; terraform apply
+```
+
+```bash
+kubectl -n newrelic get pods
+```
+
+Os dashboards (JSON importável), as consultas NRQL e as condições de alerta estão em
+[`docs/observabilidade/`](https://github.com/Fabio-GST/oficina-api/tree/main/docs/observabilidade)
+do `oficina-api`. Custo nos nós: ~250 Mi de memória por nó (agent + Fluent Bit) — já previsto no
+`t3.small`.
 
 ## Deploy automático (CI/CD)
 
