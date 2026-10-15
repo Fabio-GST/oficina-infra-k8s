@@ -8,7 +8,7 @@ resource "helm_release" "metrics_server" {
   namespace  = "kube-system"
   repository = "https://kubernetes-sigs.github.io/metrics-server/"
   chart      = "metrics-server"
-  version    = "3.12.2"
+  version    = "3.14.0"
 
   set {
     name  = "args[0]"
@@ -28,7 +28,7 @@ resource "helm_release" "cluster_autoscaler" {
   namespace  = "kube-system"
   repository = "https://kubernetes.github.io/autoscaler"
   chart      = "cluster-autoscaler"
-  version    = "9.43.2"
+  version    = "9.59.0"
 
   set {
     name  = "autoDiscovery.clusterName"

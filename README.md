@@ -36,7 +36,7 @@ flowchart LR
       end
     end
 
-    CP["EKS control plane<br/>oficina · k8s 1.31"]
+    CP["EKS control plane<br/>oficina · k8s 1.35"]
     SSM[("SSM Parameter Store<br/>/oficina/*")]
     LAMBDA["Lambda auth<br/>repo oficina-auth-lambda"]
   end
@@ -63,7 +63,7 @@ Dentro do cluster, este repositório cria:
 
 - **Terraform** ≥ 1.5 — providers `aws` 5.x, `kubernetes` 2.x, `helm` 2.x
 - Módulos `terraform-aws-modules/vpc` 5.x e `terraform-aws-modules/eks` 20.x
-- **Amazon EKS** 1.31, **API Gateway HTTP API** + VPC Link, **SSM Parameter Store**
+- **Amazon EKS** 1.35, **API Gateway HTTP API** + VPC Link, **SSM Parameter Store**
 - **GitHub Actions** (CI com `fmt`/`validate`/`tflint`/`plan` comentado no PR; CD com `apply`)
 - Estado remoto em **S3 + DynamoDB**
 
