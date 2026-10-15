@@ -11,16 +11,16 @@ output "subnets_privadas" {
 }
 
 output "cluster_nome" {
-  value = module.eks.cluster_name
+  value = local.eks.cluster_name
 }
 
 output "cluster_endpoint" {
-  value = module.eks.cluster_endpoint
+  value = local.eks.cluster_endpoint
 }
 
 output "sg_nos" {
   description = "Security group dos nós — o RDS libera 3306 para ele."
-  value       = module.eks.node_security_group_id
+  value       = local.eks.node_security_group_id
 }
 
 output "namespaces" {
@@ -33,5 +33,5 @@ output "gateway_urls" {
 }
 
 output "comando_kubeconfig" {
-  value = "aws eks update-kubeconfig --region ${var.regiao} --name ${module.eks.cluster_name}"
+  value = "aws eks update-kubeconfig --region ${var.regiao} --name ${local.eks.cluster_name}"
 }

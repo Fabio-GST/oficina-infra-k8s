@@ -12,10 +12,10 @@ locals {
     "/oficina/vpc/cidr"             = var.cidr_vpc
     "/oficina/vpc/subnets-publicas" = join(",", module.vpc.public_subnets)
     "/oficina/vpc/subnets-privadas" = join(",", module.vpc.private_subnets)
-    "/oficina/eks/nome"             = module.eks.cluster_name
-    "/oficina/eks/endpoint"         = module.eks.cluster_endpoint
-    "/oficina/eks/sg-nos"           = module.eks.node_security_group_id
-    "/oficina/eks/sg-cluster"       = module.eks.cluster_security_group_id
+    "/oficina/eks/nome"             = local.eks.cluster_name
+    "/oficina/eks/endpoint"         = local.eks.cluster_endpoint
+    "/oficina/eks/sg-nos"           = local.eks.node_security_group_id
+    "/oficina/eks/sg-cluster"       = local.eks.cluster_security_group_id
     "/oficina/iam/lab-role-arn"     = data.aws_iam_role.lab.arn
   }
 
