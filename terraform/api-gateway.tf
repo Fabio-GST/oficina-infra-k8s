@@ -21,7 +21,7 @@ locals {
   # Só ganha gateway o ambiente cuja API já publicou o NLB (ex.: hml antes de prod).
   ambientes_gateway = toset([
     for amb in var.ambientes : amb
-    if var.habilitar_gateway && length(data.aws_lbs.api[amb].arns) > 0
+    if var.habilitar_gateway && length(try(data.aws_lbs.api[amb].arns, [])) > 0
   ])
 }
 
