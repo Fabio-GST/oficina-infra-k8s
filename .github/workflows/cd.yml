@@ -1,0 +1,109 @@
+# CD: terraform apply automático. A infraestrutura (VPC, EKS, namespaces e
+# gateways de hml/prod) é compartilhada e descrita em um único state; a branch
+# define apenas o environment do GitHub (homolog → hml, main → prod), que
+# carrega suas próprias regras de aprovação. Os applies são serializados.
+#
+# Pré-requisito: credenciais do Learner Lab atualizadas nos secrets (expiram a
+# cada sessão) — ver README.
+name: CD
+
+on:
+  push:
+    branches: [homolog, main]
+  workflow_dispatch:
+    inputs:
+      destruir:
+        description: 'Executar terraform destroy (fim da sessão do lab)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-oficina-infra-k8s
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  TF_IN_AUTOMATION: 'true'
+
+defaults:
+  run:
+    working-directory: terraform
+
+jobs:
+  apply:
+    name: terraform ${{ inputs.destruir && 'destroy' || 'apply' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'prod' || 'hml' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.8'
+          terraform_wrapper: false
+
+      - name: Credenciais AWS (Learner Lab)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+
+      - name: Verificar sessão do lab
+        run: aws sts get-caller-identity
+
+      - name: terraform init
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=oficina-infra-k8s/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE }}" \
+            -backend-config="encrypt=true"
+
+      # New Relic (RFC 0004): sem o secret NEW_RELIC_LICENSE_KEY o nri-bundle é
+      # pulado (não falha), para o cluster subir mesmo antes da conta existir.
+      - name: Decidir New Relic
+        id: nr
+        env:
+          CHAVE: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
+          HABILITAR: ${{ vars.HABILITAR_NEW_RELIC || 'true' }}
+        run: |
+          if [ "$HABILITAR" = "true" ] && [ -n "$CHAVE" ]; then
+            echo "habilitar=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "habilitar=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::New Relic desligado (secret NEW_RELIC_LICENSE_KEY ausente ou HABILITAR_NEW_RELIC=false)"
+          fi
+
+      - name: terraform apply
+        if: ${{ !inputs.destruir }}
+        env:
+          TF_VAR_new_relic_license_key: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
+        run: |
+          terraform apply -input=false -auto-approve \
+            -var="habilitar_gateway=${{ vars.HABILITAR_GATEWAY || 'false' }}" \
+            -var="habilitar_new_relic=${{ steps.nr.outputs.habilitar }}"
+
+      - name: Resumo
+        if: ${{ !inputs.destruir }}
+        run: |
+          {
+            echo "## Infraestrutura aplicada"
+            echo
+            echo '```'
+            terraform output -no-color
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: terraform destroy
+        if: ${{ inputs.destruir }}
+        env:
+          TF_VAR_new_relic_license_key: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
+        run: |
+          terraform destroy -input=false -auto-approve \
+            -var="habilitar_new_relic=${{ steps.nr.outputs.habilitar }}"

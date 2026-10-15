@@ -1,0 +1,20 @@
+# Copie para terraform.tfvars. Todos têm default; ajuste só o necessário.
+regiao            = "us-east-1"
+nome_cluster      = "oficina"
+versao_kubernetes = "1.35"
+tipo_instancia    = "t3.small"
+nos_minimo        = 2
+nos_desejado      = 2
+nos_maximo        = 4
+ambientes         = ["hml", "prod"]
+
+# Ligue depois que o repo oficina-api criar o Service type=LoadBalancer (NLB).
+habilitar_gateway = false
+
+# Desligue se o Learner Lab negar chamadas de Auto Scaling para a LabRole.
+habilitar_cluster_autoscaler = true
+
+# Observabilidade (RFC 0004): nri-bundle do New Relic. A license key NÃO vai
+# neste arquivo — exporte TF_VAR_new_relic_license_key no terminal. Sem conta
+# New Relic, desligue.
+habilitar_new_relic = true
