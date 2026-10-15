@@ -107,5 +107,5 @@ resource "helm_release" "nri_bundle" {
     }
   }
 
-  depends_on = [module.eks, helm_release.metrics_server]
+  depends_on = [aws_eks_node_group.principal, aws_eks_addon.basicos, helm_release.metrics_server]
 }
