@@ -8,17 +8,21 @@
 # gateway (id publicado no SSM). Só é criado com habilitar_gateway = true,
 # porque depende do NLB já existir.
 # ---------------------------------------------------------------------------
-locals {
-  ambientes_gateway = var.habilitar_gateway ? toset(var.ambientes) : toset([])
-}
-
 # Localiza o NLB que o cloud-controller criou para o Service da API.
 data "aws_lbs" "api" {
-  for_each = local.ambientes_gateway
+  for_each = var.habilitar_gateway ? toset(var.ambientes) : toset([])
 
   tags = {
     "kubernetes.io/service-name" = "${local.namespaces[each.key]}/${var.nome_service_api}"
   }
+}
+
+locals {
+  # Só ganha gateway o ambiente cuja API já publicou o NLB (ex.: hml antes de prod).
+  ambientes_gateway = toset([
+    for amb in var.ambientes : amb
+    if var.habilitar_gateway && length(data.aws_lbs.api[amb].arns) > 0
+  ])
 }
 
 data "aws_lb" "api" {
