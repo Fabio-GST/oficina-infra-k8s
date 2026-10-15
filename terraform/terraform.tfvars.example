@@ -1,7 +1,7 @@
 # Copie para terraform.tfvars. Todos têm default; ajuste só o necessário.
 regiao            = "us-east-1"
 nome_cluster      = "oficina"
-versao_kubernetes = "1.31"
+versao_kubernetes = "1.35"
 tipo_instancia    = "t3.small"
 nos_minimo        = 2
 nos_desejado      = 2

@@ -13,7 +13,7 @@ variable "nome_cluster" {
 variable "versao_kubernetes" {
   description = "Versão do Kubernetes do cluster EKS."
   type        = string
-  default     = "1.31"
+  default     = "1.35"
 }
 
 variable "nome_role_lab" {
