@@ -65,11 +65,29 @@ jobs:
             -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE }}" \
             -backend-config="encrypt=true"
 
+      # New Relic (RFC 0004): sem o secret NEW_RELIC_LICENSE_KEY o nri-bundle é
+      # pulado (não falha), para o cluster subir mesmo antes da conta existir.
+      - name: Decidir New Relic
+        id: nr
+        env:
+          CHAVE: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
+          HABILITAR: ${{ vars.HABILITAR_NEW_RELIC || 'true' }}
+        run: |
+          if [ "$HABILITAR" = "true" ] && [ -n "$CHAVE" ]; then
+            echo "habilitar=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "habilitar=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::New Relic desligado (secret NEW_RELIC_LICENSE_KEY ausente ou HABILITAR_NEW_RELIC=false)"
+          fi
+
       - name: terraform apply
         if: ${{ !inputs.destruir }}
+        env:
+          TF_VAR_new_relic_license_key: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
         run: |
           terraform apply -input=false -auto-approve \
-            -var="habilitar_gateway=${{ vars.HABILITAR_GATEWAY || 'false' }}"
+            -var="habilitar_gateway=${{ vars.HABILITAR_GATEWAY || 'false' }}" \
+            -var="habilitar_new_relic=${{ steps.nr.outputs.habilitar }}"
 
       - name: Resumo
         if: ${{ !inputs.destruir }}
@@ -84,4 +102,8 @@ jobs:
 
       - name: terraform destroy
         if: ${{ inputs.destruir }}
-        run: terraform destroy -input=false -auto-approve
+        env:
+          TF_VAR_new_relic_license_key: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
+        run: |
+          terraform destroy -input=false -auto-approve \
+            -var="habilitar_new_relic=${{ steps.nr.outputs.habilitar }}"

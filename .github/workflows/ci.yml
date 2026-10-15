@@ -97,12 +97,18 @@ jobs:
             -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE }}" \
             -backend-config="encrypt=true"
 
+      # New Relic só entra no plan quando o secret NEW_RELIC_LICENSE_KEY existe.
       - name: terraform plan
         id: plan
         if: steps.cred.outputs.tem == 'true'
+        env:
+          TF_VAR_new_relic_license_key: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
+          HABILITAR_NR: ${{ vars.HABILITAR_NEW_RELIC || 'true' }}
         run: |
+          if [ "$HABILITAR_NR" = "true" ] && [ -n "$TF_VAR_new_relic_license_key" ]; then NR=true; else NR=false; fi
           terraform plan -input=false -no-color -out=tfplan \
             -var="habilitar_gateway=${{ vars.HABILITAR_GATEWAY || 'false' }}" \
+            -var="habilitar_new_relic=$NR" \
             | tee plan.txt
 
       - name: Comentar plan no PR
