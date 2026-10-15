@@ -15,7 +15,7 @@ resource "helm_release" "metrics_server" {
     value = "--kubelet-insecure-tls"
   }
 
-  depends_on = [module.eks]
+  depends_on = [aws_eks_node_group.principal, aws_eks_addon.basicos]
 }
 
 # Cluster Autoscaler: aumenta/diminui o node group conforme pods pendentes.
@@ -32,7 +32,7 @@ resource "helm_release" "cluster_autoscaler" {
 
   set {
     name  = "autoDiscovery.clusterName"
-    value = module.eks.cluster_name
+    value = local.eks.cluster_name
   }
 
   set {
@@ -55,5 +55,5 @@ resource "helm_release" "cluster_autoscaler" {
     value = "false"
   }
 
-  depends_on = [module.eks]
+  depends_on = [aws_eks_node_group.principal, aws_eks_addon.basicos]
 }

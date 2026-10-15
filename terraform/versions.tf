@@ -37,25 +37,25 @@ provider "aws" {
 # Os providers kubernetes/helm autenticam no cluster com um token gerado pela
 # CLI da AWS (mesmas credenciais do provider aws), sem kubeconfig em disco.
 provider "kubernetes" {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  host                   = local.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(local.eks.cluster_certificate_authority_data)
 
   exec {
     api_version = "client.authentication.k8s.io/v1beta1"
     command     = "aws"
-    args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name, "--region", var.regiao]
+    args        = ["eks", "get-token", "--cluster-name", local.eks.cluster_name, "--region", var.regiao]
   }
 }
 
 provider "helm" {
   kubernetes {
-    host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    host                   = local.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(local.eks.cluster_certificate_authority_data)
 
     exec {
       api_version = "client.authentication.k8s.io/v1beta1"
       command     = "aws"
-      args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name, "--region", var.regiao]
+      args        = ["eks", "get-token", "--cluster-name", local.eks.cluster_name, "--region", var.regiao]
     }
   }
 }

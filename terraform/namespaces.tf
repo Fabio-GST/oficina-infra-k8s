@@ -14,7 +14,7 @@ resource "kubernetes_namespace_v1" "ambiente" {
     }
   }
 
-  depends_on = [module.eks]
+  depends_on = [aws_eks_node_group.principal, aws_eks_addon.basicos]
 }
 
 # Teto de recursos por ambiente, para um ambiente não esgotar o cluster.
