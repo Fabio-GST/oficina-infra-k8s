@@ -11,6 +11,8 @@ Repositório **2 de 4** do Tech Challenge FIAP SOAT (Fase 3). Provisiona, na **A
 | [oficina-infra-db](https://github.com/Fabio-GST/oficina-infra-db) | Banco gerenciado (RDS MySQL) e modelo de dados |
 | [oficina-api](https://github.com/Fabio-GST/oficina-api) | Aplicação principal (AdonisJS) executando no EKS — [Swagger/OpenAPI](https://github.com/Fabio-GST/oficina-api/blob/main/docs/openapi.json) |
 
+🎬 **Vídeo de demonstração da Fase 3** (até 15 min): [assistir](https://drive.google.com/file/d/1RDWC32xFUaCeHpzbTpB_Rg1yz7Fi58Ie/view?usp=sharing) — roteiro e capturas no repositório [oficina-api](https://github.com/Fabio-GST/oficina-api/blob/main/docs/roteiro-video-fase-3.md).
+
 ## Arquitetura deste repositório
 
 ```mermaid
